@@ -213,9 +213,10 @@ def pack_bootimg_intel(fname):
     if read('hdr'):
         hdr = read_file('hdr')
 
-    # add signature back to header if present
+    # add signature back to header if present and add parameter padding magic for signed image
     if read('sig'):
         hdr += read_file('sig')
+        cmdline_block = cmdline_block[0:1040] + '\xBD\x02\xBD\x02\xBD\x12\xBD\x12' + cmdline_block[1048:]
     # adjust header imgtype based on signature presence
     elif hdr:
         imgtype, = struct.unpack('I', hdr[52:56])
@@ -228,7 +229,7 @@ def pack_bootimg_intel(fname):
 
     # update header
     if hdr:
-        n_block = ((len(data) + len(hdr)) / 512)
+        n_block = ((len(data) + len(hdr)) / 512 - 1)
         hdr = hdr[0:48] + struct.pack('I', n_block) + hdr[52:]
         checksum = generate_checksum(hdr)
         new_hdr = hdr[0:7] + struct.pack('B', checksum) + hdr[8:]
