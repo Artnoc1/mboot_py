@@ -100,7 +100,7 @@ def check_byte(f, size):
     # try skipping first byte if \x00 to hopefully avoid false positives with isalnum()
     if size > 1:
         skip = f.read(1)
-        if b'\x00' in skip:
+        if '\x00' in skip:
             size = size - 1
         else:
             f.seek(-1, os.SEEK_CUR)
@@ -112,35 +112,31 @@ def check_byte(f, size):
 def unpack_bootimg_intel(fname):
     f = open(fname, 'r')
 
-    hdr = None
-# header may rarely not exist on some products
+    # header may rarely not exist on some products
+    hdr = ''
     if not check_byte(f, 4).isalnum():
         hdr = f.read(512)
-    hdrsize = f.tell()
-    print 'header size  ', hdrsize
+    print 'header size  ', len(hdr)
 
-    sig = None
-# header may have 480, 728 or 1024 bytes of signature appended on some products
+    # header may have 480, 728 or 1024 bytes of signature appended on some products
+    sig = ''
     if not check_byte(f, 4).isalnum():
         sig = f.read(480)
         if not check_byte(f, 4).isalnum():
             sig += f.read(248)
             if not check_byte(f, 4).isalnum():
                 sig += f.read(296)
-    sigsize = f.tell() - hdrsize
-    print 'sig size     ', sigsize
+    print 'sig size     ', len(sig)
 
     cmdline_block = f.read(4096)
 
+    # bootstub is 4k, but can be 8k on some products
     bootstub = f.read(4096)
-# bootstub is 4k, but can be 8k on some products
     if check_byte(f, 2).isalnum():
         bootstub += f.read(4096)
-    stubsize = f.tell() - hdrsize - sigsize - 4096
-    print 'bootstub size', stubsize
+    print 'bootstub size', len(bootstub)
 
     kernelsize, ramdisksize = struct.unpack('II', cmdline_block[1024:1032])
-
     print 'kernel size  ', kernelsize
     print 'ramdisk size ', ramdisksize
 
@@ -209,7 +205,7 @@ def pack_bootimg_intel(fname):
     cmdline_block += '\0' * (4096 - len(cmdline_block))
 
     # add header if present
-    hdr = None
+    hdr = ''
     if read('hdr'):
         hdr = read_file('hdr')
 
@@ -227,18 +223,18 @@ def pack_bootimg_intel(fname):
     data += kernel
     data += ramdisk
 
-    # update header
+    # pad to next full 512 byte sector
+    topad = 512 - ((len(hdr) + len(data)) % 512)
+    if topad < 512:
+        data += '\xFF' * topad
+
+    # update sector count and xor checksum in header
     if hdr:
-        n_block = ((len(data) + len(hdr)) / 512 - 1)
+        n_block = ((len(hdr) + len(data)) / 512 - 1)
         hdr = hdr[0:48] + struct.pack('I', n_block) + hdr[52:]
         checksum = generate_checksum(hdr)
         new_hdr = hdr[0:7] + struct.pack('B', checksum) + hdr[8:]
         data = new_hdr + data
-
-    # pad to next full 512 byte sector
-    topad = 512 - (len(data) % 512)
-    if topad < 512:
-        data += '\xFF' * topad
 
     write_file(fname, data, odir=False)
 
@@ -258,7 +254,7 @@ def main():
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose")
     parser.add_option("-o", "--original",
-                      action="store_true", dest="original", help='leave ramdisk untouched, repack with the original')
+                      action="store_true", dest="original", help='leave ramdisk packed/repack with original ramdisk')
     parser.add_option("-u", "--unpack",
                       action="store_true", dest="unpack", help='split boot image into kernel, ramdisk, bootstub ...')
 
