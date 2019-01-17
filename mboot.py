@@ -235,8 +235,10 @@ def pack_bootimg_intel(fname):
         new_hdr = hdr[0:7] + struct.pack('B', checksum) + hdr[8:]
         data = new_hdr + data
 
+    # pad to next full 512 byte sector
     topad = 512 - (len(data) % 512)
-    data += '\xFF' * topad
+    if topad < 512:
+        data += '\xFF' * topad
 
     write_file(fname, data, odir=False)
 
