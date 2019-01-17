@@ -5,6 +5,7 @@
 # Author: Falempe Jocelyn <jocelyn.falempe@intel.com>
 #
 # Modifications: osm0sis @ xda-developers
+#                shakalaca @ xda-developers / ASUS ZenTalk
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms and conditions of the GNU General Public License,
@@ -77,7 +78,6 @@ def generate_checksum(hdr):
     hdr_calc = hdr[0:7] + struct.pack('B', 0) + hdr[8:56]
     for bit in hdr_calc:
         checksum ^= ord(bit)
-
     return checksum
 
 # unpack the ramdisk to outdir
@@ -85,7 +85,7 @@ def generate_checksum(hdr):
 def unpack_ramdisk(fname, outdir):
     print 'Unpacking ramdisk to', outdir
 
-    call('gunzip -f ' + fname, options.dir)
+    call('gunzip -f -k ' + fname, options.dir)
     fname = re.sub(r'\.gz$', '', fname)
 
     if os.path.exists(outdir):
@@ -170,7 +170,9 @@ def unpack_bootimg_intel(fname):
     write_file('ramdisk.cpio.gz', ramdisk)
 
     f.close()
-    unpack_ramdisk('ramdisk.cpio.gz', os.path.join(options.dir, 'extracted_ramdisk'))
+
+    if not options.original:
+        unpack_ramdisk('ramdisk.cpio.gz', os.path.join(options.dir, 'extracted_ramdisk'))
 
 def skip_pad(f, pgsz):
     npg = ((f.tell() / pgsz) + 1)
@@ -195,7 +197,8 @@ def pack_ramdisk(dname):
     call('gzip -f ramdisk.cpio', options.dir)
 
 def pack_bootimg_intel(fname):
-    pack_ramdisk('extracted_ramdisk')
+    if not options.original:
+        pack_ramdisk('extracted_ramdisk')
     kernel = read_file('kernel')
     ramdisk = read_file('ramdisk.cpio.gz')
 
@@ -213,9 +216,10 @@ def pack_bootimg_intel(fname):
     # add signature back to header if present
     if read('sig'):
         hdr += read_file('sig')
-    else:
-        imgType, = struct.unpack('I', hdr[52:56])
-        hdr = hdr[0:52] + struct.pack('I', imgType|0x01) + hdr[56:]
+    # adjust header imgtype based on signature presence
+    elif hdr:
+        imgtype, = struct.unpack('I', hdr[52:56])
+        hdr = hdr[0:52] + struct.pack('I', imgtype|0x01) + hdr[56:]
 
     data = cmdline_block
     data += read_file('bootstub')
@@ -250,6 +254,8 @@ def main():
     parser = OptionParser(usage, version='%prog 0.1')
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose")
+    parser.add_option("-o", "--original",
+                      action="store_true", dest="original", help='leave ramdisk untouched, repack with the original')
     parser.add_option("-u", "--unpack",
                       action="store_true", dest="unpack", help='split boot image into kernel, ramdisk, bootstub ...')
 
