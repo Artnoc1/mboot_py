@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-# mboot.py : script to unpack and re-pack boot.img for Android
+# mboot.py - script to unpack and repack Intel boot.img for Android
 # Copyright (c) 2014, Intel Corporation.
-# Author: Falempe Jocelyn <jocelyn.falempe@intel.com>
+# Author: Jocelyn Falempe <jocelyn.falempe@intel.com>
 #
-# Modifications: osm0sis @ xda-developers
-#                shakalaca @ xda-developers / ASUS ZenTalk
+# Modifications:
+# Copyright (c) 2019, Chris Renshaw (osm0sis @ xda-developers)
+#                     Shaka Huang (shakalaca @ xda-developers / ASUS ZenTalk)
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms and conditions of the GNU General Public License,
@@ -240,17 +241,17 @@ def pack_bootimg_intel(fname):
 
 def main():
     global options
-    usage = 'usage: %prog [options] boot.img\n\n' \
-            '    unpack boot.img into separate files,\n' \
-            '    OR pack a directory with kernel/ramdisk/bootstub  into a boot.img\n' \
-            '    Default is to (unpack to / pack from) tmp_boot_unpack\n\n' \
-            'Example : \n' \
+    usage = 'Usage: %prog [options] boot.img\n\n' \
+            '    unpack an Intel boot.img into separate files,\n' \
+            '    OR pack a directory with kernel/ramdisk/bootstub into an Intel boot.img\n' \
+            '    Default is to unpack to/pack from tmp_boot_unpack\n\n' \
+            'Example:\n' \
             ' To unpack a boot.img image\n' \
             '    mboot.py -u boot.img\n' \
             ' modify tmp_boot_unpack/extracted_ramdisk/init.rc and run\n' \
             '    mboot.py boot-new.img'
 
-    parser = OptionParser(usage, version='%prog 0.1')
+    parser = OptionParser(usage, version='%prog 1.0')
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose")
     parser.add_option("-o", "--original",
