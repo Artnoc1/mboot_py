@@ -171,10 +171,6 @@ def unpack_bootimg_intel(fname):
     if not options.original:
         unpack_ramdisk('ramdisk.cpio.gz', os.path.join(options.dir, 'extracted_ramdisk'))
 
-def skip_pad(f, pgsz):
-    npg = ((f.tell() / pgsz) + 1)
-    f.seek(npg * pgsz)
-
 def unpack_bootimg(fname):
     if options.dir == 'tmp_boot_unpack' and os.path.exists(options.dir):
         print 'Removing ', options.dir
